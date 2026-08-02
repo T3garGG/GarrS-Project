@@ -20,7 +20,7 @@ export default function LoginPage() {
       setError("Username atau password salah.");
       return;
     }
-    router.push("/dashboard");
+    router.push("/welcome");
   }
 
   return (

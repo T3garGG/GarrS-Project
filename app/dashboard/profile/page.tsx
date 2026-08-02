@@ -9,12 +9,11 @@ export default async function ProfilePage() {
   if (!session) redirect("/login");
 
   const username = session.user?.name || "";
-  const displayName = (session.user as any)?.displayName || "";
 
   return (
     <div style={{ maxWidth: 480 }}>
       <BackButton />
-      <ProfileClient currentUsername={username} currentDisplayName={displayName} />
+      <ProfileClient currentUsername={username} />
     </div>
   );
 }

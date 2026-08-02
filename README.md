@@ -20,11 +20,9 @@ Login pertama pake `owner` / `changeme123` — **GANTI PASSWORD-NYA LANGSUNG**, 
 2. **Bot WhatsApp & Telegram** — bot beneran (Baileys / Telegraf) **jalan di VPS lu sendiri** (kayak project Seraphyne lu), bukan di Vercel — serverless gak bisa nampung koneksi persisten. Di Admin Panel, klik "Buat koneksi" buat dapetin `webhookKey`, terus dari proses bot lu, `POST` ke:
    - `/api/bots/whatsapp` header `x-webhook-key: <key>`
    - `/api/bots/telegram` header `x-webhook-key: <key>`
-3. **Splash video** — sekarang bisa langsung upload file dari komputer lewat Admin Panel (pake Vercel Blob storage). Sebelum dipake, aktifin dulu:
-   - Buka project di Vercel > tab "Storage" > "Create Database" > pilih **Blob**
-   - Setelah dibuat, `BLOB_READ_WRITE_TOKEN` otomatis ke-set sebagai env var — gak perlu isi manual
-   - Redeploy, terus coba upload dari Admin Panel > Splash Video
-   - Kalo males pake Blob, tetep bisa pake opsi lama: paste URL video langsung (misal video yang udah di-hosting di tempat lain)
+3. **Splash video** — video default udah dibundel di `public/splash-default.mp4`, muncul otomatis setelah user/admin login (halaman `/welcome`, ada tombol skip). Mau ganti videonya? Dua cara:
+   - Ganti langsung file `public/splash-default.mp4` di project, commit, push
+   - Atau paste URL video lain di Admin Panel > Splash Video (video di-hosting di tempat lain)
 
 ## Deploy ke Vercel
 
