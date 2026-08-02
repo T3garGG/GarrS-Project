@@ -9,6 +9,8 @@ export default function AdminClient() {
   const [form, setForm] = useState({ username: "", password: "", role: "MEMBER", features: [] as string[] });
   const [splashUrl, setSplashUrl] = useState("");
   const [msg, setMsg] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ role: "MEMBER", features: [] as string[] });
 
   async function loadAll() {
     const [u, b] = await Promise.all([fetch("/api/admin/users"), fetch("/api/admin/bots")]);
@@ -37,6 +39,41 @@ export default function AdminClient() {
     if (!res.ok) { setMsg(data.error); return; }
     setForm({ username: "", password: "", role: "MEMBER", features: [] });
     setMsg(`Akun "${data.username}" dibuat.`);
+    loadAll();
+  }
+
+  function startEdit(u: any) {
+    setEditingId(u.id);
+    setEditForm({ role: u.role, features: u.permissions.map((p: any) => p.feature) });
+    setMsg("");
+  }
+
+  function toggleEditFeature(f: string) {
+    setEditForm((s) => ({
+      ...s,
+      features: s.features.includes(f) ? s.features.filter((x) => x !== f) : [...s.features, f],
+    }));
+  }
+
+  async function saveEdit(id: string) {
+    setMsg("");
+    const res = await fetch(`/api/admin/users/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(editForm),
+    });
+    const data = await res.json();
+    if (!res.ok) { setMsg(data.error); return; }
+    setEditingId(null);
+    setMsg("Akun di-update.");
+    loadAll();
+  }
+
+  async function deleteUser(id: string) {
+    if (!confirm("Yakin mau hapus akun ini? Gak bisa dibalikin.")) return;
+    const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
+    const data = await res.json();
+    if (!res.ok) { setMsg(data.error); return; }
     loadAll();
   }
 
@@ -100,7 +137,7 @@ export default function AdminClient() {
         <table className="mono" style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ textAlign: "left", color: "var(--text-dim)" }}>
-              <th style={{ padding: 6 }}>Username</th><th>Role</th><th>Fitur</th>
+              <th style={{ padding: 6 }}>Username</th><th>Role</th><th>Fitur</th><th>Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -109,10 +146,38 @@ export default function AdminClient() {
                 <td style={{ padding: 6 }}>{u.username}</td>
                 <td><span className="badge">{u.role}</span></td>
                 <td>{u.permissions.map((p: any) => p.feature).join(", ") || "-"}</td>
+                <td style={{ display: "flex", gap: 6 }}>
+                  <button className="btn-outline" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => startEdit(u)}>Edit</button>
+                  {u.role !== "OWNER" && (
+                    <button className="btn-outline" style={{ padding: "4px 10px", fontSize: 12, color: "var(--danger)" }} onClick={() => deleteUser(u.id)}>Hapus</button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
+
+        {editingId && (
+          <div className="panel" style={{ padding: 16, marginTop: 16, background: "var(--bg)" }}>
+            <p className="label-dim mono" style={{ marginBottom: 10 }}>EDIT AKUN</p>
+            <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })} style={{ marginBottom: 12 }}>
+              <option value="MEMBER">MEMBER</option>
+              <option value="ADMIN">ADMIN</option>
+            </select>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+              {FEATURES.map((f) => (
+                <label key={f} className="badge" style={{ cursor: "pointer", background: editForm.features.includes(f) ? "var(--accent)" : "transparent", color: editForm.features.includes(f) ? "#fff" : "var(--text-dim)" }}>
+                  <input type="checkbox" checked={editForm.features.includes(f)} onChange={() => toggleEditFeature(f)} style={{ display: "none" }} />
+                  {f}
+                </label>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="btn" onClick={() => saveEdit(editingId)}>Simpan</button>
+              <button className="btn-outline" onClick={() => setEditingId(null)}>Batal</button>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="panel" style={{ padding: 24 }}>
