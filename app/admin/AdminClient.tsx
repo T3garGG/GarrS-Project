@@ -1,9 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation"; // Tambahkan import useRouter untuk tombol kembali
 
 const FEATURES = ["TIKTOK_DL", "INSTAGRAM_DL", "YOUTUBE_DL", "PUBLIC_CHAT", "WHATSAPP_BOT", "TELEGRAM_BOT"];
 
 export default function AdminClient() {
+  const router = useRouter(); // Inisialisasi router
+
   const [users, setUsers] = useState<any[]>([]);
   const [bots, setBots] = useState<any[]>([]);
   const [form, setForm] = useState({ username: "", password: "", role: "MEMBER", features: [] as string[] });
@@ -40,6 +43,25 @@ export default function AdminClient() {
     setForm({ username: "", password: "", role: "MEMBER", features: [] });
     setMsg(`Akun "${data.username}" dibuat.`);
     loadAll();
+  }
+
+  // FUNGSI BARU: Hapus Akun
+  async function deleteUser(id: string, username: string) {
+    if (!confirm(`Yakin ingin menghapus akun ${username}?`)) return;
+    setMsg("");
+    
+    // Asumsi route API delete ada di /api/admin/users/[id]
+    const res = await fetch(`/api/admin/users/${id}`, {
+      method: "DELETE",
+    });
+    
+    if (res.ok) {
+      setMsg(`Akun "${username}" berhasil dihapus.`);
+      loadAll(); // Refresh data tabel
+    } else {
+      const data = await res.json();
+      setMsg(data.error || "Gagal menghapus akun.");
+    }
   }
 
   async function updateSplash(e: React.FormEvent) {
@@ -81,9 +103,19 @@ export default function AdminClient() {
 
   return (
     <div style={{ display: "grid", gap: 24 }}>
-      <div>
-        <p className="label-dim mono">ADMIN PANEL</p>
-        <h1 style={{ margin: 0 }}>Kontrol Sistem</h1>
+      {/* BAGIAN HEADER DENGAN TOMBOL KEMBALI */}
+      <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+        <button 
+          className="btn-outline" 
+          onClick={() => router.back()}
+          style={{ padding: "6px 12px", cursor: "pointer" }}
+        >
+          &larr; Kembali
+        </button>
+        <div>
+          <p className="label-dim mono" style={{ margin: 0 }}>ADMIN PANEL</p>
+          <h1 style={{ margin: 0 }}>Kontrol Sistem</h1>
+        </div>
       </div>
 
       {msg && <p className="panel" style={{ padding: 12 }}>{msg}</p>}
@@ -117,7 +149,10 @@ export default function AdminClient() {
         <table className="mono" style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ textAlign: "left", color: "var(--text-dim)" }}>
-              <th style={{ padding: 6 }}>Username</th><th>Role</th><th>Fitur</th>
+              <th style={{ padding: 6 }}>Username</th>
+              <th>Role</th>
+              <th>Fitur</th>
+              <th>Aksi</th> {/* TAMBAHAN KOLOM AKSI */}
             </tr>
           </thead>
           <tbody>
@@ -125,7 +160,17 @@ export default function AdminClient() {
               <tr key={u.id} style={{ borderTop: "1px solid var(--border)" }}>
                 <td style={{ padding: 6 }}>{u.username}</td>
                 <td><span className="badge">{u.role}</span></td>
-                <td>{u.permissions.map((p: any) => p.feature).join(", ") || "-"}</td>
+                <td>{u.permissions?.map((p: any) => p.feature).join(", ") || "-"}</td>
+                <td>
+                  {/* TAMBAHAN TOMBOL HAPUS */}
+                  <button 
+                    onClick={() => deleteUser(u.id, u.username)}
+                    className="btn-outline" 
+                    style={{ borderColor: "#ef4444", color: "#ef4444", padding: "4px 8px", fontSize: 12 }}
+                  >
+                    Hapus
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -135,6 +180,7 @@ export default function AdminClient() {
       <section className="panel" style={{ padding: 24 }}>
         <h2 style={{ marginTop: 0, fontSize: 16 }}>Splash video login</h2>
 
+        {/* FITUR UPLOAD DARI KOMPUTER (SUDAH ADA) */}
         <p className="label-dim" style={{ marginBottom: 6 }}>Upload dari komputer</p>
         <form onSubmit={uploadSplashFile} style={{ display: "flex", gap: 8, maxWidth: 480, marginBottom: 20 }}>
           <input
