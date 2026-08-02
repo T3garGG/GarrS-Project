@@ -25,9 +25,10 @@ export const authOptions: NextAuthOptions = {
         const valid = await bcrypt.compare(credentials.password, user.passwordHash);
         if (!valid) return null;
 
-        return {
+         return {
           id: user.id,
           name: user.username,
+          displayName: user.displayName || user.username,
           role: user.role,
           permissions: user.permissions.map((p) => p.feature),
         } as any;
@@ -39,6 +40,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.role = (user as any).role;
         token.permissions = (user as any).permissions;
+        token.displayName = (user as any).displayName;
       }
       return token;
     },
@@ -46,6 +48,7 @@ export const authOptions: NextAuthOptions = {
       (session.user as any).role = token.role;
       (session.user as any).permissions = token.permissions;
       (session.user as any).id = token.sub;
+      (session.user as any).displayName = token.displayName;
       return session;
     },
   },

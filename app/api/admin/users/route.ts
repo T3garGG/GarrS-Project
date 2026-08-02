@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   const session = await requireAdmin();
   if (!session) return NextResponse.json({ error: "Lu bukan admin, ngapain kesini." }, { status: 403 });
 
-  const { username, password, role, features } = await req.json();
+  const { username, displayName, password, role, features } = await req.json();
   if (!username || !password) {
     return NextResponse.json({ error: "Username/password wajib diisi." }, { status: 400 });
   }
@@ -41,6 +41,7 @@ export async function POST(req: Request) {
   const user = await prisma.user.create({
     data: {
       username,
+      displayName: displayName || null,
       passwordHash,
       role: role === "ADMIN" ? "ADMIN" : "MEMBER",
       createdById: (session.user as any).id,

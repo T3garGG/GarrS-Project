@@ -9,7 +9,10 @@ export default function AdminClient() {
 
   const [users, setUsers] = useState<any[]>([]);
   const [bots, setBots] = useState<any[]>([]);
-  const [form, setForm] = useState({ username: "", password: "", role: "MEMBER", features: [] as string[] });
+  const [form, setForm] = useState({ username: "", displayName: "", password: "", role: "MEMBER", features: [] as string[] });
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editForm, setEditForm] = useState({ displayName: "", role: "MEMBER", password: "", features: [] as string[] });
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const [splashUrl, setSplashUrl] = useState("");
   const [splashFile, setSplashFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -43,7 +46,7 @@ export default function AdminClient() {
     });
     const data = await res.json();
     if (!res.ok) { setMsg(data.error); return; }
-    setForm({ username: "", password: "", role: "MEMBER", features: [] });
+    setForm({ username: "", displayName: "", password: "", role: "MEMBER", features: [] });
     setMsg(`Akun "${data.username}" dibuat.`);
     loadAll();
   }
@@ -52,19 +55,68 @@ export default function AdminClient() {
   async function deleteUser(id: string, username: string) {
     if (!confirm(`Yakin ingin menghapus akun ${username}?`)) return;
     setMsg("");
-    
-    // Asumsi route API delete ada di /api/admin/users/[id]
+    setEditingUser(null);
+
     const res = await fetch(`/api/admin/users/${id}`, {
       method: "DELETE",
     });
-    
+
     if (res.ok) {
       setMsg(`Akun "${username}" berhasil dihapus.`);
-      loadAll(); // Refresh data tabel
+      loadAll();
     } else {
       const data = await res.json();
       setMsg(data.error || "Gagal menghapus akun.");
     }
+  }
+
+  // Buka form edit user
+  async function startEdit(user: any) {
+    const res = await fetch(`/api/admin/users/${user.id}`);
+    if (res.ok) {
+      const data = await res.json();
+      setEditingUser(data);
+      setEditForm({
+        displayName: data.displayName || "",
+        role: data.role,
+        password: "",
+        features: data.permissions?.map((p: any) => p.feature) || [],
+      });
+    } else {
+      const data = await res.json();
+      setMsg(data.error || "Gagal ambil data user.");
+    }
+  }
+
+  function toggleEditFeature(f: string) {
+    setEditForm((s) => ({
+      ...s,
+      features: s.features.includes(f) ? s.features.filter((x) => x !== f) : [...s.features, f],
+    }));
+  }
+
+  // Simpan perubahan user
+  async function saveUser(e: React.FormEvent) {
+    e.preventDefault();
+    setMsg("");
+    if (!editingUser) return;
+
+    const res = await fetch(`/api/admin/users/${editingUser.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(editForm),
+    });
+    const data = await res.json();
+    if (!res.ok) { setMsg(data.error); return; }
+
+    setMsg(`Akun "${data.username}" di-update.`);
+    setEditingUser(null);
+    loadAll();
+  }
+
+  function cancelEdit() {
+    setEditingUser(null);
+    setEditForm({ displayName: "", role: "MEMBER", password: "", features: [] });
   }
 
   async function updateSplash(e: React.FormEvent) {
@@ -154,6 +206,7 @@ export default function AdminClient() {
         <h2 style={{ marginTop: 0, fontSize: 16 }}>Buat akun baru</h2>
         <form onSubmit={createUser} style={{ display: "grid", gap: 12, maxWidth: 420 }}>
           <input placeholder="Username" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required />
+          <input placeholder="Nickname / Display name (opsional)" value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} />
           <input placeholder="Password (min 8 karakter)" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
           <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
             <option value="MEMBER">MEMBER</option>
@@ -176,30 +229,94 @@ export default function AdminClient() {
 
       <section className="panel" style={{ padding: 24 }}>
         <h2 style={{ marginTop: 0, fontSize: 16 }}>Daftar akun</h2>
+
+        {/* FORM EDIT USER (muncul saat klik Edit) */}
+        {editingUser && (
+          <div style={{ marginBottom: 16, padding: 16, border: "1px solid var(--border)", borderRadius: 8 }}>
+            <p className="label-dim mono" style={{ marginBottom: 8 }}>Edit: {editingUser.username}</p>
+            <form onSubmit={saveUser} style={{ display: "grid", gap: 12, maxWidth: 420 }}>
+              <input
+                placeholder="Display name / nickname"
+                value={editForm.displayName}
+                onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })}
+              />
+              <select
+                value={editForm.role}
+                onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+              >
+                <option value="MEMBER">MEMBER</option>
+                <option value="ADMIN">ADMIN</option>
+              </select>
+              <input
+                placeholder="Password baru (min 8 karakter, kosongkan jika tidak ganti)"
+                type="password"
+                value={editForm.password}
+                onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+              />
+              <div>
+                <p className="label-dim" style={{ marginBottom: 6 }}>Fitur yang bisa diakses</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {FEATURES.map((f) => (
+                    <label
+                      key={f}
+                      className="badge"
+                      style={{ cursor: "pointer", padding: "2px 8px", border: "1px solid var(--border)", borderRadius: 4,
+                        background: editForm.features.includes(f) ? "var(--accent)" : "transparent",
+                        color: editForm.features.includes(f) ? "#fff" : "var(--text-dim)" }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={editForm.features.includes(f)}
+                        onChange={() => toggleEditFeature(f)}
+                        style={{ display: "none" }}
+                      />
+                      {f}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="btn" type="submit">Simpan</button>
+                <button type="button" className="btn-outline" onClick={cancelEdit}>Batal</button>
+              </div>
+            </form>
+          </div>
+        )}
+
         <table className="mono" style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ textAlign: "left", color: "var(--text-dim)" }}>
               <th style={{ padding: 6 }}>Username</th>
+              <th>Display Name</th>
               <th>Role</th>
               <th>Fitur</th>
-              <th>Aksi</th> {/* TAMBAHAN KOLOM AKSI */}
+              <th>Aksi</th>
             </tr>
           </thead>
           <tbody>
             {users.map((u) => (
               <tr key={u.id} style={{ borderTop: "1px solid var(--border)" }}>
                 <td style={{ padding: 6 }}>{u.username}</td>
+                <td style={{ padding: 6 }}>{u.displayName || <span className="label-dim">-</span>}</td>
                 <td><span className="badge">{u.role}</span></td>
                 <td>{u.permissions?.map((p: any) => p.feature).join(", ") || "-"}</td>
                 <td>
-                  {/* TAMBAHAN TOMBOL HAPUS */}
-                  <button 
-                    onClick={() => deleteUser(u.id, u.username)}
-                    className="btn-outline" 
-                    style={{ borderColor: "#ef4444", color: "#ef4444", padding: "4px 8px", fontSize: 12 }}
-                  >
-                    Hapus
-                  </button>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button
+                      onClick={() => startEdit(u)}
+                      className="btn-outline"
+                      style={{ padding: "4px 8px", fontSize: 12 }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => deleteUser(u.id, u.username)}
+                      className="btn-outline"
+                      style={{ borderColor: "#ef4444", color: "#ef4444", padding: "4px 8px", fontSize: 12 }}
+                    >
+                      Hapus
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

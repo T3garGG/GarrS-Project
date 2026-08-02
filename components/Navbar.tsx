@@ -6,10 +6,12 @@ import ThemeToggle from "./ThemeToggle";
 export default function Navbar({
   role,
   username,
+  displayName,
   permissions,
 }: {
   role: string;
   username: string;
+  displayName?: string;
   permissions: string[];
 }) {
   const isPrivileged = role === "OWNER" || role === "ADMIN";
@@ -50,7 +52,7 @@ export default function Navbar({
         </Link>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span className="badge">{username} · {role}</span>
+        <span className="badge">{displayName || username} <span className="label-dim" style={{ fontSize: 11 }}>({username})</span> · {role}</span>
         <ThemeToggle />
         <button className="btn-outline" onClick={() => signOut({ callbackUrl: "/login" })}>
           Keluar

@@ -9,7 +9,7 @@ export async function PATCH(req: Request) {
   if (!session) return NextResponse.json({ error: "Belum login." }, { status: 401 });
 
   const userId = (session.user as any).id;
-  const { username, currentPassword, newPassword } = await req.json();
+  const { username, displayName, currentPassword, newPassword } = await req.json();
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return NextResponse.json({ error: "Akun gak ketemu." }, { status: 404 });
@@ -22,6 +22,10 @@ export async function PATCH(req: Request) {
   if (!valid) return NextResponse.json({ error: "Password sekarang salah." }, { status: 403 });
 
   const data: any = {};
+
+  if (displayName !== undefined && displayName !== null && displayName !== user.displayName) {
+    data.displayName = displayName || null;
+  }
 
   if (username && username !== user.username) {
     const existing = await prisma.user.findUnique({ where: { username } });
@@ -40,6 +44,10 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Gak ada yang diubah." }, { status: 400 });
   }
 
-  const updated = await prisma.user.update({ where: { id: userId }, data });
-  return NextResponse.json({ username: updated.username });
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data,
+    select: { username: true, displayName: true },
+  });
+  return NextResponse.json(updated);
 }
