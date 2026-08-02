@@ -2,7 +2,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import ThemeToggle from "@/components/ThemeToggle";
 
 const TILES = [
   { key: "TIKTOK_DL", title: "TikTok Downloader", href: "/dashboard/downloader/tiktok", desc: "Unduh video TikTok tanpa watermark" },
@@ -22,13 +21,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
   const visibleTiles = TILES.filter((t) => isPrivileged || perms.includes(t.key));
 
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto", padding: 32 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
-        <div>
-          <p className="label-dim mono">DASHBOARD</p>
-          <h1 style={{ margin: 0 }}>Halo, {session.user?.name} <span className="badge">{role}</span></h1>
-        </div>
-        <ThemeToggle />
+    <div style={{ paddingBottom: 32 }}>
+      <div style={{ marginBottom: 24 }}>
+        <p className="label-dim mono">DASHBOARD</p>
+        <h1 style={{ margin: 0 }}>Halo, {session.user?.name} <span className="badge">{role}</span></h1>
       </div>
 
       {searchParams?.denied && (

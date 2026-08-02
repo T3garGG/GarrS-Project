@@ -1,8 +1,10 @@
 import DownloaderForm from "@/components/DownloaderForm";
+import BackButton from "@/components/BackButton";
 
 export default function Page() {
   return (
-    <div style={{ padding: 32 }}>
+    <div>
+      <BackButton />
       <DownloaderForm platform="tiktok" apiPath="/api/download/tiktok" />
     </div>
   );

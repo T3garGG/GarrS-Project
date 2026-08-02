@@ -8,6 +8,8 @@ export default function AdminClient() {
   const [bots, setBots] = useState<any[]>([]);
   const [form, setForm] = useState({ username: "", password: "", role: "MEMBER", features: [] as string[] });
   const [splashUrl, setSplashUrl] = useState("");
+  const [splashFile, setSplashFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
 
   async function loadAll() {
@@ -43,12 +45,29 @@ export default function AdminClient() {
   async function updateSplash(e: React.FormEvent) {
     e.preventDefault();
     if (!splashUrl) return;
-    await fetch("/api/admin/splash", {
+    setMsg("");
+    const res = await fetch("/api/admin/splash", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ splashVideoUrl: splashUrl }),
     });
-    setMsg("Splash video di-update.");
+    const data = await res.json();
+    setMsg(res.ok ? "Splash video di-update." : data.error);
+  }
+
+  async function uploadSplashFile(e: React.FormEvent) {
+    e.preventDefault();
+    if (!splashFile) return;
+    setMsg("");
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", splashFile);
+    const res = await fetch("/api/admin/splash/upload", { method: "POST", body: fd });
+    const data = await res.json();
+    setUploading(false);
+    if (!res.ok) { setMsg(data.error); return; }
+    setSplashFile(null);
+    setMsg("Splash video berhasil diupload dan di-update.");
   }
 
   async function createBot(type: string) {
@@ -61,7 +80,7 @@ export default function AdminClient() {
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: 32, display: "grid", gap: 24 }}>
+    <div style={{ display: "grid", gap: 24 }}>
       <div>
         <p className="label-dim mono">ADMIN PANEL</p>
         <h1 style={{ margin: 0 }}>Kontrol Sistem</h1>
@@ -115,9 +134,24 @@ export default function AdminClient() {
 
       <section className="panel" style={{ padding: 24 }}>
         <h2 style={{ marginTop: 0, fontSize: 16 }}>Splash video login</h2>
+
+        <p className="label-dim" style={{ marginBottom: 6 }}>Upload dari komputer</p>
+        <form onSubmit={uploadSplashFile} style={{ display: "flex", gap: 8, maxWidth: 480, marginBottom: 20 }}>
+          <input
+            type="file"
+            accept="video/*"
+            onChange={(e) => setSplashFile(e.target.files?.[0] || null)}
+            style={{ flex: 1 }}
+          />
+          <button className="btn" disabled={!splashFile || uploading}>
+            {uploading ? "Mengupload..." : "Upload"}
+          </button>
+        </form>
+
+        <p className="label-dim" style={{ marginBottom: 6 }}>Atau pakai URL video</p>
         <form onSubmit={updateSplash} style={{ display: "flex", gap: 8, maxWidth: 480 }}>
-          <input placeholder="URL video baru (.mp4)" value={splashUrl} onChange={(e) => setSplashUrl(e.target.value)} style={{ flex: 1 }} />
-          <button className="btn">Update</button>
+          <input placeholder="URL video (.mp4)" value={splashUrl} onChange={(e) => setSplashUrl(e.target.value)} style={{ flex: 1 }} />
+          <button className="btn-outline">Update</button>
         </form>
       </section>
 

@@ -2,16 +2,18 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import BackButton from "@/components/BackButton";
-import AdminClient from "./AdminClient";
+import ProfileClient from "./ProfileClient";
 
-export default async function AdminPage() {
+export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
+  const username = session.user?.name || "";
+
   return (
-    <div style={{ paddingBottom: 32 }}>
+    <div style={{ maxWidth: 480 }}>
       <BackButton />
-      <AdminClient />
+      <ProfileClient currentUsername={username} />
     </div>
   );
 }
