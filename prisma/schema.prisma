@@ -1,0 +1,72 @@
+// Swap provider to "postgresql" + set DATABASE_URL (Neon) when deploying to Vercel.
+// Local dev default: sqlite (zero setup).
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum Feature {
+  TIKTOK_DL
+  INSTAGRAM_DL
+  YOUTUBE_DL
+  PUBLIC_CHAT
+  WHATSAPP_BOT
+  TELEGRAM_BOT
+  ADMIN_PANEL
+}
+
+model User {
+  id            String    @id @default(cuid())
+  username      String    @unique
+  passwordHash  String
+  role          Role      @default(MEMBER)
+  createdAt     DateTime  @default(now())
+  createdById   String?
+  permissions   Permission[]
+  chatMessages  ChatMessage[]
+}
+
+// per-account feature access, set by admin when creating/editing the account
+model Permission {
+  id      String  @id @default(cuid())
+  userId  String
+  feature Feature
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, feature])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// singleton row (id = "singleton") for splash video + theme toggle default
+model AppSettings {
+  id             String  @id @default("singleton")
+  splashVideoUrl String  @default("/splash-default.mp4")
+  defaultTheme   String  @default("dark")
+}
+
+// stores connection status/webhook secret for external bots (bots run on your own VPS/Seraphyne, not on Vercel)
+model BotConnection {
+  id         String   @id @default(cuid())
+  type       String   // "whatsapp" | "telegram"
+  label      String
+  webhookKey String   @unique
+  connected  Boolean  @default(false)
+  updatedAt  DateTime @updatedAt
+}
