@@ -1,21 +1,41 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const FEATURES = ["TIKTOK_DL", "INSTAGRAM_DL", "YOUTUBE_DL", "PUBLIC_CHAT", "WHATSAPP_BOT", "TELEGRAM_BOT"];
 
 export default function AdminClient() {
+  const router = useRouter();
   const [users, setUsers] = useState<any[]>([]);
   const [bots, setBots] = useState<any[]>([]);
-  const [form, setForm] = useState({ username: "", password: "", role: "MEMBER", features: [] as string[] });
+  const [form, setForm] = useState({ username: "", displayName: "", password: "", role: "MEMBER", features: [] as string[] });
   const [splashUrl, setSplashUrl] = useState("");
-  const [msg, setMsg] = useState("");
+  const [splashFile, setSplashFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [currentSplashUrl, setCurrentSplashUrl] = useState<string>("/splash-default.mp4");
+  const [apiConfig, setApiConfig] = useState({ tiktokApiUrl: "", instagramApiUrl: "", youtubeApiUrl: "" });
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ role: "MEMBER", features: [] as string[] });
+  const [editForm, setEditForm] = useState({ displayName: "", role: "MEMBER", features: [] as string[], password: "" });
+  const [msg, setMsg] = useState("");
 
   async function loadAll() {
-    const [u, b] = await Promise.all([fetch("/api/admin/users"), fetch("/api/admin/bots")]);
+    const [u, b, s] = await Promise.all([
+      fetch("/api/admin/users"),
+      fetch("/api/admin/bots"),
+      fetch("/api/admin/splash"),
+    ]);
     if (u.ok) setUsers(await u.json());
     if (b.ok) setBots(await b.json());
+    if (s.ok) {
+      const data = await s.json();
+      setCurrentSplashUrl(data.splashVideoUrl || "/splash-default.mp4");
+      setApiConfig({
+        tiktokApiUrl: data.tiktokApiUrl || "",
+        instagramApiUrl: data.instagramApiUrl || "",
+        youtubeApiUrl: data.youtubeApiUrl || "",
+      });
+    }
   }
 
   useEffect(() => { loadAll(); }, []);
@@ -37,14 +57,19 @@ export default function AdminClient() {
     });
     const data = await res.json();
     if (!res.ok) { setMsg(data.error); return; }
-    setForm({ username: "", password: "", role: "MEMBER", features: [] });
+    setForm({ username: "", displayName: "", password: "", role: "MEMBER", features: [] });
     setMsg(`Akun "${data.username}" dibuat.`);
     loadAll();
   }
 
   function startEdit(u: any) {
     setEditingId(u.id);
-    setEditForm({ role: u.role, features: u.permissions.map((p: any) => p.feature) });
+    setEditForm({
+      displayName: u.displayName || "",
+      role: u.role,
+      features: u.permissions?.map((p: any) => p.feature) || [],
+      password: "",
+    });
     setMsg("");
   }
 
@@ -57,15 +82,22 @@ export default function AdminClient() {
 
   async function saveEdit(id: string) {
     setMsg("");
+    const body: any = {
+      role: editForm.role,
+      features: editForm.features,
+    };
+    if (editForm.displayName) body.displayName = editForm.displayName;
+    if (editForm.password) body.password = editForm.password;
+
     const res = await fetch(`/api/admin/users/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editForm),
+      body: JSON.stringify(body),
     });
     const data = await res.json();
     if (!res.ok) { setMsg(data.error); return; }
     setEditingId(null);
-    setMsg("Akun di-update.");
+    setMsg(`Akun "${data.username}" di-update.`);
     loadAll();
   }
 
@@ -74,6 +106,7 @@ export default function AdminClient() {
     const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
     const data = await res.json();
     if (!res.ok) { setMsg(data.error); return; }
+    setMsg("Akun dihapus.");
     loadAll();
   }
 
@@ -90,6 +123,61 @@ export default function AdminClient() {
     setMsg(res.ok ? "Splash video di-update." : data.error);
   }
 
+  async function saveApiConfig(e: React.FormEvent) {
+    e.preventDefault();
+    setMsg("");
+    const res = await fetch("/api/admin/splash", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(apiConfig),
+    });
+    const data = await res.json();
+    setMsg(res.ok ? "API config saver." : data.error);
+  }
+
+  async function uploadSplashFile(e: React.FormEvent) {
+    e.preventDefault();
+    if (!splashFile) return;
+    setMsg("");
+    setUploading(true);
+    setUploadProgress(0);
+
+    const formData = new FormData();
+    formData.append("file", splashFile);
+
+    return new Promise<void>((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.upload.addEventListener("progress", (event) => {
+        if (event.lengthComputable) {
+          setUploadProgress(Math.round((event.loaded / event.total) * 100));
+        }
+      });
+      xhr.addEventListener("load", () => {
+        const data = JSON.parse(xhr.responseText);
+        setUploading(false);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          setUploadProgress(100);
+          setSplashFile(null);
+          setCurrentSplashUrl(data.splashVideoUrl);
+          setMsg("Splash video berhasil diupload dan di-update.");
+          loadAll();
+        } else {
+          setUploadProgress(null);
+          setMsg(data.error || "Upload gagal.");
+        }
+        resolve();
+      });
+      xhr.addEventListener("error", () => {
+        setUploading(false);
+        setUploadProgress(null);
+        setMsg("Gagal konek ke server.");
+        resolve();
+      });
+      xhr.open("POST", "/api/admin/splash/upload");
+      xhr.send(formData);
+    });
+  }
+
   async function createBot(type: string) {
     const res = await fetch("/api/admin/bots", {
       method: "POST",
@@ -101,9 +189,18 @@ export default function AdminClient() {
 
   return (
     <div style={{ display: "grid", gap: 24 }}>
-      <div>
-        <p className="label-dim mono">ADMIN PANEL</p>
-        <h1 style={{ margin: 0 }}>Kontrol Sistem</h1>
+      <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+        <button
+          className="btn-outline"
+          onClick={() => router.back()}
+          style={{ padding: "6px 12px", cursor: "pointer" }}
+        >
+          &larr; Kembali
+        </button>
+        <div>
+          <p className="label-dim mono">ADMIN PANEL</p>
+          <h1 style={{ margin: 0 }}>Kontrol Sistem</h1>
+        </div>
       </div>
 
       {msg && <p className="panel" style={{ padding: 12 }}>{msg}</p>}
@@ -112,6 +209,7 @@ export default function AdminClient() {
         <h2 style={{ marginTop: 0, fontSize: 16 }}>Buat akun baru</h2>
         <form onSubmit={createUser} style={{ display: "grid", gap: 12, maxWidth: 420 }}>
           <input placeholder="Username" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required />
+          <input placeholder="Nickname / Display name (opsional)" value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} />
           <input placeholder="Password (min 8 karakter)" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
           <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
             <option value="MEMBER">MEMBER</option>
@@ -136,16 +234,17 @@ export default function AdminClient() {
         <h2 style={{ marginTop: 0, fontSize: 16 }}>Daftar akun</h2>
         <table className="mono" style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ textAlign: "left", color: "var(--text-dim)" }}>
-              <th style={{ padding: 6 }}>Username</th><th>Role</th><th>Fitur</th><th>Aksi</th>
+              <tr style={{ textAlign: "left", color: "var(--text-dim)" }}>
+              <th style={{ padding: 6 }}>Username</th><th>Display Name</th><th>Role</th><th>Fitur</th><th>Aksi</th>
             </tr>
           </thead>
           <tbody>
             {users.map((u) => (
               <tr key={u.id} style={{ borderTop: "1px solid var(--border)" }}>
                 <td style={{ padding: 6 }}>{u.username}</td>
+                <td style={{ padding: 6 }}>{u.displayName || <span className="label-dim">-</span>}</td>
                 <td><span className="badge">{u.role}</span></td>
-                <td>{u.permissions.map((p: any) => p.feature).join(", ") || "-"}</td>
+                <td>{u.permissions?.map((p: any) => p.feature).join(", ") || "-"}</td>
                 <td style={{ display: "flex", gap: 6 }}>
                   <button className="btn-outline" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => startEdit(u)}>Edit</button>
                   {u.role !== "OWNER" && (
@@ -160,10 +259,23 @@ export default function AdminClient() {
         {editingId && (
           <div className="panel" style={{ padding: 16, marginTop: 16, background: "var(--bg)" }}>
             <p className="label-dim mono" style={{ marginBottom: 10 }}>EDIT AKUN</p>
+            <input
+              placeholder="Nickname / Display name"
+              value={editForm.displayName}
+              onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })}
+              style={{ marginBottom: 12, width: "100%", maxWidth: 420 }}
+            />
             <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })} style={{ marginBottom: 12 }}>
               <option value="MEMBER">MEMBER</option>
               <option value="ADMIN">ADMIN</option>
             </select>
+            <input
+              placeholder="Password baru (min 8 karakter, kosongkan jika tidak ganti)"
+              type="password"
+              value={editForm.password}
+              onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+              style={{ marginBottom: 14, width: "100%", maxWidth: 420 }}
+            />
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
               {FEATURES.map((f) => (
                 <label key={f} className="badge" style={{ cursor: "pointer", background: editForm.features.includes(f) ? "var(--accent)" : "transparent", color: editForm.features.includes(f) ? "#fff" : "var(--text-dim)" }}>
@@ -181,13 +293,114 @@ export default function AdminClient() {
       </section>
 
       <section className="panel" style={{ padding: 24 }}>
-        <h2 style={{ marginTop: 0, fontSize: 16 }}>Splash video login</h2>
+        <h2 style={{ marginTop: 0, fontSize: 16 }}>Downloader API (Third-Party)</h2>
         <p className="label-dim" style={{ marginBottom: 12 }}>
-          Video default udah dipasang di project (`public/splash-default.mp4`). Mau ganti pake video lain? Paste URL-nya di sini.
+          Masukkan URL endpoint API pihak ketiga untuk tiap platform. Format request:
+          <span className="mono" style={{ fontSize: 11 }}>{' { "url": "video_url" } '}</span> —
+          response harus ada <span className="mono" style={{ fontSize: 11 }}>downloadUrl</span>.
         </p>
+        <form onSubmit={saveApiConfig} style={{ display: "grid", gap: 12, maxWidth: 560 }}>
+          <div>
+            <label className="label-dim" htmlFor="tiktokApiUrl">TikTok API URL</label>
+            <input
+              id="tiktokApiUrl"
+              placeholder="https://api.contoh.com/tiktok"
+              value={apiConfig.tiktokApiUrl}
+              onChange={(e) => setApiConfig({ ...apiConfig, tiktokApiUrl: e.target.value })}
+              style={{ width: "100%", marginTop: 6 }}
+            />
+          </div>
+          <div>
+            <label className="label-dim" htmlFor="instagramApiUrl">Instagram API URL</label>
+            <input
+              id="instagramApiUrl"
+              placeholder="https://api.contoh.com/instagram"
+              value={apiConfig.instagramApiUrl}
+              onChange={(e) => setApiConfig({ ...apiConfig, instagramApiUrl: e.target.value })}
+              style={{ width: "100%", marginTop: 6 }}
+            />
+          </div>
+          <div>
+            <label className="label-dim" htmlFor="youtubeApiUrl">YouTube API URL</label>
+            <input
+              id="youtubeApiUrl"
+              placeholder="https://api.contoh.com/youtube"
+              value={apiConfig.youtubeApiUrl}
+              onChange={(e) => setApiConfig({ ...apiConfig, youtubeApiUrl: e.target.value })}
+              style={{ width: "100%", marginTop: 6 }}
+            />
+          </div>
+          <button className="btn">Simpan API Config</button>
+        </form>
+      </section>
+
+      <section className="panel" style={{ padding: 24 }}>
+        <h2 style={{ marginTop: 0, fontSize: 16 }}>Splash video login</h2>
+
+        <p className="label-dim" style={{ marginBottom: 6 }}>Upload dari komputer</p>
+        <div style={{ marginBottom: 16 }}>
+          <label
+            htmlFor="splash-file-input"
+            className="btn-outline"
+            style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "8px 16px" }}
+          >
+            Pilih File
+          </label>
+          <input
+            id="splash-file-input"
+            type="file"
+            accept="video/*"
+            onChange={(e) => { const f = e.target.files?.[0] || null; setSplashFile(f); setUploadProgress(null); }}
+            style={{ display: "none" }}
+          />
+          {splashFile ? (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginLeft: 12, fontSize: 13 }}>
+              <span className="label-dim">{splashFile.name}</span>
+              <span className="label-dim">({(splashFile.size / (1024 * 1024)).toFixed(1)} MB)</span>
+              <button
+                type="button"
+                className="btn-outline"
+                style={{ padding: "2px 8px", fontSize: 11 }}
+                onClick={() => { setSplashFile(null); setUploadProgress(null); }}
+              >
+                Batal
+              </button>
+            </div>
+          ) : (
+            <span className="label-dim" style={{ marginLeft: 12, fontSize: 13 }}>
+              Belum ada file dipilih
+            </span>
+          )}
+        </div>
+
+        <form onSubmit={uploadSplashFile} style={{ display: "flex", gap: 8, maxWidth: 480, marginBottom: 20 }}>
+          <button className="btn" disabled={!splashFile || uploading}>
+            {uploading ? (uploadProgress !== null ? `Mengupload ${uploadProgress}%...` : "Mengupload...") : "Upload"}
+          </button>
+        </form>
+
+        {uploadProgress === 100 && (
+          <p style={{ color: "var(--success)", fontSize: 13, marginBottom: 12 }}>Upload selesai!</p>
+        )}
+
+        {currentSplashUrl && (
+          <div style={{ marginBottom: 16 }}>
+            <p className="label-dim" style={{ marginBottom: 6, fontSize: 12 }}>Video splash yang sedang aktif</p>
+            <video
+              key={currentSplashUrl}
+              src={currentSplashUrl}
+              controls
+              muted
+              style={{ maxWidth: "100%", maxHeight: 200, borderRadius: 8, border: "1px solid var(--border)" }}
+            />
+            <p className="label-dim" style={{ fontSize: 11, marginTop: 4, wordBreak: "break-all" }}>{currentSplashUrl}</p>
+          </div>
+        )}
+
+        <p className="label-dim" style={{ marginBottom: 6 }}>Atau pakai URL video</p>
         <form onSubmit={updateSplash} style={{ display: "flex", gap: 8, maxWidth: 480 }}>
           <input placeholder="URL video (.mp4)" value={splashUrl} onChange={(e) => setSplashUrl(e.target.value)} style={{ flex: 1 }} />
-          <button className="btn">Update</button>
+          <button className="btn-outline">Update</button>
         </form>
       </section>
 

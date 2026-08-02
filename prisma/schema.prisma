@@ -54,11 +54,14 @@ model ChatMessage {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// singleton row (id = "singleton") for splash video + theme toggle default
+// singleton row (id = "singleton") for splash video + theme toggle default + API config
 model AppSettings {
   id             String  @id @default("singleton")
   splashVideoUrl String  @default("/splash-default.mp4")
   defaultTheme   String  @default("dark")
+  tiktokApiUrl   String? // third-party API endpoint for TikTok downloader
+  instagramApiUrl String? // third-party API endpoint for Instagram downloader
+  youtubeApiUrl  String? // third-party API endpoint for YouTube downloader
 }
 
 // stores connection status/webhook secret for external bots (bots run on your own VPS/Seraphyne, not on Vercel)
@@ -69,4 +72,16 @@ model BotConnection {
   webhookKey String   @unique
   connected  Boolean  @default(false)
   updatedAt  DateTime @updatedAt
+  botInfo    String?  // JSON string: bot username, phone number, etc. (from bot webhook)
+  botEvents  BotEvent[]
+}
+
+// events received from external bots (QR code, incoming messages, status)
+model BotEvent {
+  id          String   @id @default(cuid())
+  botId       String
+  bot         BotConnection @relation(fields: [botId], references: [id], onDelete: Cascade)
+  eventType   String   // "qr_code" | "incoming_message" | "status" | "message_sent"
+  payload     String   // JSON string with event data
+  createdAt   DateTime @default(now())
 }
