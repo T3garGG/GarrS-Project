@@ -10,6 +10,15 @@ async function requireAdmin() {
   return session;
 }
 
+// get current splash video URL
+export async function GET() {
+  const session = await requireAdmin();
+  if (!session) return NextResponse.json({ error: "Lu bukan admin." }, { status: 403 });
+
+  const settings = await prisma.appSettings.findUnique({ where: { id: "singleton" } });
+  return NextResponse.json(settings);
+}
+
 // set splash video via a URL (external link)
 export async function POST(req: Request) {
   const session = await requireAdmin();

@@ -13,12 +13,15 @@ export default function AdminClient() {
   const [splashUrl, setSplashUrl] = useState("");
   const [splashFile, setSplashFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [currentSplashUrl, setCurrentSplashUrl] = useState<string>("");
   const [msg, setMsg] = useState("");
 
   async function loadAll() {
-    const [u, b] = await Promise.all([fetch("/api/admin/users"), fetch("/api/admin/bots")]);
+    const [u, b, s] = await Promise.all([fetch("/api/admin/users"), fetch("/api/admin/bots"), fetch("/api/admin/splash")]);
     if (u.ok) setUsers(await u.json());
     if (b.ok) setBots(await b.json());
+    if (s.ok) { const data = await s.json(); setCurrentSplashUrl(data.splashVideoUrl || "/splash-default.mp4"); }
   }
 
   useEffect(() => { loadAll(); }, []);
@@ -82,14 +85,41 @@ export default function AdminClient() {
     if (!splashFile) return;
     setMsg("");
     setUploading(true);
-    const fd = new FormData();
-    fd.append("file", splashFile);
-    const res = await fetch("/api/admin/splash/upload", { method: "POST", body: fd });
-    const data = await res.json();
-    setUploading(false);
-    if (!res.ok) { setMsg(data.error); return; }
-    setSplashFile(null);
-    setMsg("Splash video berhasil diupload dan di-update.");
+    setUploadProgress(0);
+
+    const formData = new FormData();
+    formData.append("file", splashFile);
+
+    return new Promise<void>((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.upload.addEventListener("progress", (event) => {
+        if (event.lengthComputable) {
+          setUploadProgress(Math.round((event.loaded / event.total) * 100));
+        }
+      });
+      xhr.addEventListener("load", () => {
+        const data = JSON.parse(xhr.responseText);
+        setUploading(false);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          setUploadProgress(100);
+          setSplashFile(null);
+          setMsg("Splash video berhasil diupload dan di-update.");
+          loadAll();
+        } else {
+          setUploadProgress(null);
+          setMsg(data.error || "Upload gagal.");
+        }
+        resolve();
+      });
+      xhr.addEventListener("error", () => {
+        setUploading(false);
+        setUploadProgress(null);
+        setMsg("Gagal konek ke server.");
+        resolve();
+      });
+      xhr.open("POST", "/api/admin/splash/upload");
+      xhr.send(formData);
+    });
   }
 
   async function createBot(type: string) {
@@ -180,19 +210,68 @@ export default function AdminClient() {
       <section className="panel" style={{ padding: 24 }}>
         <h2 style={{ marginTop: 0, fontSize: 16 }}>Splash video login</h2>
 
-        {/* FITUR UPLOAD DARI KOMPUTER (SUDAH ADA) */}
         <p className="label-dim" style={{ marginBottom: 6 }}>Upload dari komputer</p>
-        <form onSubmit={uploadSplashFile} style={{ display: "flex", gap: 8, maxWidth: 480, marginBottom: 20 }}>
+
+        {/* Styled file picker: tombol "Pilih File" + nama file yang dipilih */}
+        <div style={{ marginBottom: 16 }}>
+          <label
+            htmlFor="splash-file-input"
+            className="btn-outline mono"
+            style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "8px 16px" }}
+          >
+            Pilih File
+          </label>
           <input
+            id="splash-file-input"
             type="file"
             accept="video/*"
-            onChange={(e) => setSplashFile(e.target.files?.[0] || null)}
-            style={{ flex: 1 }}
+            onChange={(e) => { const f = e.target.files?.[0] || null; setSplashFile(f); setUploadProgress(null); }}
+            style={{ display: "none" }}
           />
+          {splashFile ? (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginLeft: 12, fontSize: 13 }}>
+              <span className="label-dim">{splashFile.name}</span>
+              <span className="label-dim">({(splashFile.size / (1024 * 1024)).toFixed(1)} MB)</span>
+              <button
+                type="button"
+                className="btn-outline"
+                style={{ padding: "2px 8px", fontSize: 11 }}
+                onClick={() => { setSplashFile(null); setUploadProgress(null); }}
+              >
+                Batal
+              </button>
+            </div>
+          ) : (
+            <span className="label-dim" style={{ marginLeft: 12, fontSize: 13 }}>
+              Belum ada file dipilih
+            </span>
+          )}
+        </div>
+
+        <form onSubmit={uploadSplashFile} style={{ display: "flex", gap: 8, maxWidth: 480, marginBottom: 20 }}>
           <button className="btn" disabled={!splashFile || uploading}>
-            {uploading ? "Mengupload..." : "Upload"}
+            {uploading ? (uploadProgress !== null ? `Mengupload ${uploadProgress}%...` : "Mengupload...") : "Upload"}
           </button>
         </form>
+
+        {uploadProgress === 100 && (
+          <p style={{ color: "var(--success)", fontSize: 13, marginBottom: 12 }}>Upload selesai!</p>
+        )}
+
+        {/* Preview video yang sedang aktif */}
+        {currentSplashUrl && currentSplashUrl !== "/splash-default.mp4" && (
+          <div style={{ marginBottom: 16 }}>
+            <p className="label-dim" style={{ marginBottom: 6, fontSize: 12 }}>Video splash yang sedang aktif</p>
+            <video
+              key={currentSplashUrl}
+              src={currentSplashUrl}
+              controls
+              muted
+              style={{ maxWidth: "100%", maxHeight: 200, borderRadius: 8, border: "1px solid var(--border)" }}
+            />
+            <p className="label-dim" style={{ fontSize: 11, marginTop: 4, wordBreak: "break-all" }}>{currentSplashUrl}</p>
+          </div>
+        )}
 
         <p className="label-dim" style={{ marginBottom: 6 }}>Atau pakai URL video</p>
         <form onSubmit={updateSplash} style={{ display: "flex", gap: 8, maxWidth: 480 }}>
