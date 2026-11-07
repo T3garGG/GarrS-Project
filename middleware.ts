@@ -1,5 +1,5 @@
-import { withAuth } from "next-auth/middleware";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 
 const FEATURE_BY_PATH: Record<string, string> = {
   "/dashboard/downloader/tiktok": "TIKTOK_DL",
@@ -9,25 +9,28 @@ const FEATURE_BY_PATH: Record<string, string> = {
   "/admin": "ADMIN_PANEL",
 };
 
-export default withAuth(
-  function middleware(req) {
-    const path = req.nextUrl.pathname;
-    const token = (req as any).nextauth?.token;
-    const requiredFeature = Object.entries(FEATURE_BY_PATH).find(([p]) =>
-      path.startsWith(p)
-    )?.[1];
+export async function middleware(req: NextRequest) {
+  const path = req.nextUrl.pathname;
 
-    if (requiredFeature) {
-      const perms: string[] = token?.permissions || [];
-      const isOwnerOrAdmin = token?.role === "OWNER" || token?.role === "ADMIN";
-      if (!isOwnerOrAdmin && !perms.includes(requiredFeature)) {
-        return NextResponse.redirect(new URL("/dashboard?denied=1", req.url));
-      }
-    }
+  // Public productivity hub. Individual tools can apply their own guest limits.
+  if (path === "/dashboard/tools" || path.startsWith("/dashboard/tools/")) {
     return NextResponse.next();
-  },
-  { pages: { signIn: "/login" } }
-);
+  }
+
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  if (!token) return NextResponse.redirect(new URL("/login", req.url));
+
+  const requiredFeature = Object.entries(FEATURE_BY_PATH).find(([prefix]) => path.startsWith(prefix))?.[1];
+  if (requiredFeature) {
+    const permissions: string[] = (token.permissions as string[]) || [];
+    const isPrivileged = token.role === "OWNER" || token.role === "ADMIN";
+    if (!isPrivileged && !permissions.includes(requiredFeature)) {
+      return NextResponse.redirect(new URL("/dashboard?denied=1", req.url));
+    }
+  }
+
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: ["/dashboard/:path*", "/admin/:path*"],
