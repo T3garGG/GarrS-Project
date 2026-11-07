@@ -4,11 +4,11 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 const TILES = [
-  { key: "TIKTOK_DL", title: "TikTok Downloader", href: "/dashboard/downloader/tiktok", desc: "Unduh video TikTok tanpa watermark" },
-  { key: "INSTAGRAM_DL", title: "Instagram Downloader", href: "/dashboard/downloader/instagram", desc: "Unduh reels, post, story" },
-  { key: "YOUTUBE_DL", title: "YouTube Downloader", href: "/dashboard/downloader/youtube", desc: "Unduh video/audio YouTube" },
-  { key: "PUBLIC_CHAT", title: "Public Chat", href: "/dashboard/chat", desc: "Obrolan bareng semua pengguna" },
-  { key: "ADMIN_PANEL", title: "Admin Panel", href: "/admin", desc: "Kelola akun, role, splash, bot" },
+  { key: "TIKTOK_DL", title: "TikTok Downloader", href: "/dashboard/downloader/tiktok", desc: "Unduh video tanpa watermark.", icon: "TT" },
+  { key: "INSTAGRAM_DL", title: "Instagram Downloader", href: "/dashboard/downloader/instagram", desc: "Simpan reels, post, dan story.", icon: "IG" },
+  { key: "YOUTUBE_DL", title: "YouTube Downloader", href: "/dashboard/downloader/youtube", desc: "Unduh video atau audio.", icon: "YT" },
+  { key: "PUBLIC_CHAT", title: "Public Chat", href: "/dashboard/chat", desc: "Ngobrol bareng pengguna lain.", icon: "••" },
+  { key: "ADMIN_PANEL", title: "Admin Panel", href: "/admin", desc: "Kelola user, bot, dan settings.", icon: "◆" },
 ];
 
 export default async function DashboardPage({ searchParams }: { searchParams: { denied?: string } }) {
@@ -18,32 +18,53 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
   const role = (session.user as any).role;
   const perms: string[] = (session.user as any).permissions || [];
   const isPrivileged = role === "OWNER" || role === "ADMIN";
-  const visibleTiles = TILES.filter((t) => isPrivileged || perms.includes(t.key));
+  const visibleTiles = TILES.filter((tile) => isPrivileged || perms.includes(tile.key));
+  const username = session.user?.name || "there";
 
   return (
-    <div style={{ paddingBottom: 32 }}>
-      <div style={{ marginBottom: 24 }}>
-        <p className="label-dim mono">DASHBOARD</p>
-        <h1 style={{ margin: 0 }}>Halo, {session.user?.name} <span className="badge">{role}</span></h1>
-      </div>
+    <main className="page-stack">
+      <section className="panel hero">
+        <div>
+          <p className="label-dim">Workspace pribadi</p>
+          <h1>Halo, {username}.</h1>
+          <p>Satu ruang buat semua tools yang sering kamu pakai. Pilih fitur, tempel link, selesai.</p>
+        </div>
+        <div className="hero-actions">
+          <span className="badge">{role} access</span>
+          <Link href="/dashboard/profile" className="btn-outline">Pengaturan profil</Link>
+        </div>
+      </section>
 
       {searchParams?.denied && (
-        <p className="panel" style={{ padding: 12, color: "var(--danger)", marginBottom: 20 }}>
-          Akun lu gak punya akses ke fitur itu. Minta admin kasih permission dulu.
-        </p>
+        <div className="panel" style={{ padding: 16, color: "var(--danger)" }} role="alert">
+          Akun kamu belum punya akses ke fitur itu. Minta admin memberi permission.
+        </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
-        {visibleTiles.length === 0 && (
-          <p className="label-dim">Belum ada fitur yang di-assign ke akun lu. Hubungi admin.</p>
-        )}
-        {visibleTiles.map((t) => (
-          <Link key={t.key} href={t.href} className="panel" style={{ padding: 20, textDecoration: "none", color: "var(--text)" }}>
-            <p style={{ fontWeight: 600, margin: "0 0 6px" }}>{t.title}</p>
-            <p className="label-dim" style={{ margin: 0, textTransform: "none", letterSpacing: 0 }}>{t.desc}</p>
-          </Link>
-        ))}
-      </div>
-    </div>
+      <section>
+        <div className="stats-grid">
+          <div className="panel stat-card"><p className="label-dim">Tools aktif</p><div className="stat-value">{visibleTiles.length}</div><div className="stat-note">Siap dipakai sekarang</div></div>
+          <div className="panel stat-card"><p className="label-dim">Role</p><div className="stat-value">{role}</div><div className="stat-note">Akses akun kamu</div></div>
+          <div className="panel stat-card"><p className="label-dim">Mode</p><div className="stat-value">Live</div><div className="stat-note">Terhubung ke workspace</div></div>
+        </div>
+      </section>
+
+      <section>
+        <div className="section-heading">
+          <div><h2>Semua tools</h2><p>Pilih workflow yang mau kamu jalankan.</p></div>
+          <span className="label-dim">{visibleTiles.length} tersedia</span>
+        </div>
+        <div className="feature-grid">
+          {visibleTiles.length === 0 && <p className="label-dim">Belum ada fitur yang di-assign. Hubungi admin.</p>}
+          {visibleTiles.map((tile) => (
+            <Link key={tile.key} href={tile.href} className="panel feature-card">
+              <div className="feature-icon">{tile.icon}</div>
+              <h3>{tile.title}</h3>
+              <p>{tile.desc}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </main>
   );
 }

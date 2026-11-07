@@ -28,37 +28,23 @@ export default function Navbar({
   ];
 
   return (
-    <nav
-      className="panel"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "12px 20px",
-        marginBottom: 24,
-        flexWrap: "wrap",
-        gap: 12,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
-        <Link href="/dashboard" className="mono" style={{ color: "var(--accent)", fontWeight: 700, textDecoration: "none", letterSpacing: "0.05em" }}>
-          ◆ DASHBOARD
+    <nav className="panel navbar">
+      <div className="nav-links">
+        <Link href="/dashboard" className="nav-brand">
+          <span className="nav-brand-mark">◆</span>
+          <span>Garrs Hub</span>
         </Link>
         {links.filter((l) => l.show).map((l) => (
-          <Link key={l.href} href={l.href} style={{ color: "var(--text-dim)", textDecoration: "none", fontSize: 14 }}>
+          <Link key={l.href} href={l.href} className="nav-link">
             {l.label}
           </Link>
         ))}
-        <Link href="/dashboard/profile" style={{ color: "var(--text-dim)", textDecoration: "none", fontSize: 14 }}>
-          Edit Profil
-        </Link>
+        <Link href="/dashboard/profile" className="nav-link">Profil</Link>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span className="badge">{displayName || username} <span className="label-dim" style={{ fontSize: 11 }}>({username})</span> · {role}</span>
+      <div className="nav-actions">
+        <span className="badge"><span>{displayName || username}</span><span>·</span><span>{role}</span></span>
         <ThemeToggle />
-        <button className="btn-outline" onClick={() => signOut({ callbackUrl: "/login" })}>
-          Keluar
-        </button>
+        <button className="btn-outline" onClick={() => signOut({ callbackUrl: "/login" })}>Keluar</button>
       </div>
     </nav>
   );

@@ -24,36 +24,26 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <form onSubmit={handleSubmit} className="panel" style={{ width: 360, padding: 32 }}>
-        <p className="label-dim mono" style={{ marginBottom: 4 }}>AUTH</p>
-        <h1 style={{ margin: "0 0 24px", fontSize: 22 }}>Masuk ke Dashboard</h1>
+    <main className="login-shell">
+      <form onSubmit={handleSubmit} className="panel login-card">
+        <div className="login-brand"><span className="nav-brand-mark">◆</span><span>Garrs Hub</span></div>
+        <p className="label-dim">Welcome back</p>
+        <h1>Masuk ke workspace.</h1>
+        <p className="login-subtitle">Akses downloader, chat, bot control, dan tools kamu dari satu tempat.</p>
 
-        <label className="label-dim" htmlFor="username">Username</label>
-        <input
-          id="username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          style={{ width: "100%", margin: "6px 0 16px" }}
-          required
-        />
-
-        <label className="label-dim" htmlFor="password">Password</label>
-        <input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={{ width: "100%", margin: "6px 0 20px" }}
-          required
-        />
-
-        {error && <p style={{ color: "var(--danger)", fontSize: 13, marginBottom: 12 }}>{error}</p>}
-
-        <button className="btn" type="submit" style={{ width: "100%" }} disabled={loading}>
-          {loading ? "Memeriksa..." : "Masuk"}
-        </button>
+        <div className="form-stack">
+          <div className="form-field">
+            <label htmlFor="username">Username</label>
+            <input id="username" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required />
+          </div>
+          <div className="form-field">
+            <label htmlFor="password">Password</label>
+            <input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          </div>
+          {error && <p style={{ color: "var(--danger)", fontSize: 13, margin: 0 }} role="alert">{error}</p>}
+          <button className="btn" type="submit" disabled={loading}>{loading ? "Memeriksa..." : "Masuk ke dashboard"}</button>
+        </div>
       </form>
-    </div>
+    </main>
   );
 }

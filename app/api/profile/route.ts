@@ -30,8 +30,8 @@ export async function PATCH(req: Request) {
   }
 
   if (newPassword) {
-    if (newPassword.length < 8) {
-      return NextResponse.json({ error: "Password baru minimal 8 karakter." }, { status: 400 });
+    if (newPassword.length < 12) {
+      return NextResponse.json({ error: "Password baru minimal 12 karakter." }, { status: 400 });
     }
     data.passwordHash = await bcrypt.hash(newPassword, 10);
   }

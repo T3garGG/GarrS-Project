@@ -2,6 +2,7 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
+import { rateLimit } from "./rate-limit";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
@@ -15,6 +16,10 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.username || !credentials?.password) return null;
+
+        const username = credentials.username.trim().toLowerCase();
+        const loginLimit = rateLimit(`login:${username}`, 5, 15 * 60 * 1000);
+        if (!loginLimit.allowed) throw new Error("Terlalu banyak percobaan login. Coba lagi nanti.");
 
         const user = await prisma.user.findUnique({
           where: { username: credentials.username },

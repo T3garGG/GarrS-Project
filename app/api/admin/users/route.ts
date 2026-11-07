@@ -30,8 +30,8 @@ export async function POST(req: Request) {
   if (!username || !password) {
     return NextResponse.json({ error: "Username/password wajib diisi." }, { status: 400 });
   }
-  if (password.length < 8) {
-    return NextResponse.json({ error: "Password minimal 8 karakter, jangan males." }, { status: 400 });
+  if (password.length < 12) {
+    return NextResponse.json({ error: "Password minimal 12 karakter, jangan males." }, { status: 400 });
   }
 
   const existing = await prisma.user.findUnique({ where: { username } });

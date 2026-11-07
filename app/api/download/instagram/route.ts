@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { callThirdPartyApi } from "@/lib/downloader";
+import { getClientIp, rateLimitResponse, rateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -13,6 +14,9 @@ export async function POST(req: Request) {
   if (!isPrivileged && !perms.includes("INSTAGRAM_DL")) {
     return NextResponse.json({ error: "Gak punya akses fitur ini." }, { status: 403 });
   }
+
+  const requestLimit = rateLimit(`download:instagram:${getClientIp(req)}`, 10, 60_000);
+  if (!requestLimit.allowed) return rateLimitResponse(requestLimit.retryAfter);
 
   const { url } = await req.json();
   if (!url || typeof url !== "string") {

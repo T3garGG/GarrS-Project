@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const requestLimit = rateLimit(`chat:get:${getClientIp(req)}`, 30, 60_000);
+  if (!requestLimit.allowed) return rateLimitResponse(requestLimit.retryAfter);
+
   const messages = await prisma.chatMessage.findMany({
     orderBy: { createdAt: "desc" },
     take: 50,
@@ -15,6 +19,9 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Belum login." }, { status: 401 });
+
+  const requestLimit = rateLimit(`chat:post:${getClientIp(req)}`, 20, 60_000);
+  if (!requestLimit.allowed) return rateLimitResponse(requestLimit.retryAfter);
 
   const perms: string[] = (session.user as any).permissions || [];
   const role = (session.user as any).role;

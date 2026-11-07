@@ -1,14 +1,22 @@
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
+
 const prisma = new PrismaClient();
 
 async function main() {
-  const hash = await bcrypt.hash("changeme123", 10);
+  const username = process.env.SEED_OWNER_USERNAME || "owner";
+  const password = process.env.SEED_OWNER_PASSWORD;
+
+  if (!password || password.length < 12) {
+    throw new Error("Set SEED_OWNER_PASSWORD with at least 12 characters before running seed.");
+  }
+
+  const hash = await bcrypt.hash(password, 12);
   await prisma.user.upsert({
-    where: { username: "owner" },
+    where: { username },
     update: {},
     create: {
-      username: "owner",
+      username,
       passwordHash: hash,
       role: "OWNER",
       permissions: {
@@ -24,12 +32,19 @@ async function main() {
       },
     },
   });
+
   await prisma.appSettings.upsert({
     where: { id: "singleton" },
     update: {},
     create: { id: "singleton" },
   });
-  console.log("Seeded. Login: owner / changeme123 — GANTI PASSWORD INI SEGERA.");
+
+  console.log(`Seed complete for ${username}. Password was not printed.`);
 }
 
-main().finally(() => prisma.$disconnect());
+main()
+  .catch((error) => {
+    console.error(`Seed gagal: ${error.message}`);
+    process.exitCode = 1;
+  })
+  .finally(() => prisma.$disconnect());

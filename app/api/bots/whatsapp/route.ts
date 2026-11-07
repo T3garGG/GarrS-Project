@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 // External bot process (Baileys for WA, running on your own VPS)
 // calls this endpoint with header "x-webhook-key" to:
@@ -8,6 +9,9 @@ import { prisma } from "@/lib/prisma";
 // Vercel serverless can't hold a persistent bot connection — the bot itself must run elsewhere
 // and just talk to this API.
 export async function POST(req: Request) {
+  const requestLimit = rateLimit(`webhook:whatsapp:${getClientIp(req)}`, 60, 60_000);
+  if (!requestLimit.allowed) return rateLimitResponse(requestLimit.retryAfter);
+
   const key = req.headers.get("x-webhook-key");
   if (!key) return NextResponse.json({ error: "Missing webhook key." }, { status: 401 });
 
@@ -21,6 +25,9 @@ export async function POST(req: Request) {
   if (!bot.connected) {
     await prisma.botConnection.update({ where: { id: bot.id }, data: { connected: true } });
   }
+
+  const contentLength = Number(req.headers.get("content-length") || 0);
+  if (contentLength > 64_000) return NextResponse.json({ error: "Payload terlalu besar." }, { status: 413 });
 
   const body = await req.json().catch(() => ({}));
 

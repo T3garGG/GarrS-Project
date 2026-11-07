@@ -12,7 +12,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const permissions: string[] = (session.user as any).permissions || [];
 
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 24px 0" }}>
+    <div className="shell">
       <Navbar role={role} username={username} permissions={permissions} />
       {children}
     </div>
