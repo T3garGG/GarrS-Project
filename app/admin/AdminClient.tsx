@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-const FEATURES = ["TIKTOK_DL", "INSTAGRAM_DL", "YOUTUBE_DL", "PUBLIC_CHAT", "WHATSAPP_BOT", "TELEGRAM_BOT"];
+const FEATURES = ["TIKTOK_DL", "INSTAGRAM_DL", "YOUTUBE_DL", "PUBLIC_CHAT", "WHATSAPP_BOT", "TELEGRAM_BOT", "ADMIN_PANEL"];
 
 export default function AdminClient() {
   const router = useRouter();

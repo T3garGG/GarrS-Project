@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 const TILES = [
+  { key: "TOOLS", title: "Productivity Tools", href: "/dashboard/tools", desc: "12 tools gratis: QR, converter, hash, dan lainnya.", icon: "✦" },
   { key: "TIKTOK_DL", title: "TikTok Downloader", href: "/dashboard/downloader/tiktok", desc: "Unduh video tanpa watermark.", icon: "TT" },
   { key: "INSTAGRAM_DL", title: "Instagram Downloader", href: "/dashboard/downloader/instagram", desc: "Simpan reels, post, dan story.", icon: "IG" },
   { key: "YOUTUBE_DL", title: "YouTube Downloader", href: "/dashboard/downloader/youtube", desc: "Unduh video atau audio.", icon: "YT" },
@@ -18,7 +19,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
   const role = (session.user as any).role;
   const perms: string[] = (session.user as any).permissions || [];
   const isPrivileged = role === "OWNER" || role === "ADMIN";
-  const visibleTiles = TILES.filter((tile) => isPrivileged || perms.includes(tile.key));
+  const visibleTiles = TILES.filter((tile) => tile.key === "TOOLS" || isPrivileged || perms.includes(tile.key));
   const username = session.user?.name || "there";
 
   return (

@@ -22,6 +22,7 @@ export default function Navbar({
     ? [{ href: "/dashboard/tools", label: "Productivity", show: true }]
     : [
     { href: "/dashboard", label: "Home", show: true },
+    { href: "/dashboard/tools", label: "Tools", show: true },
     { href: "/dashboard/downloader/tiktok", label: "TikTok", show: isPrivileged || permissions.includes("TIKTOK_DL") },
     { href: "/dashboard/downloader/instagram", label: "Instagram", show: isPrivileged || permissions.includes("INSTAGRAM_DL") },
     { href: "/dashboard/downloader/youtube", label: "YouTube", show: isPrivileged || permissions.includes("YOUTUBE_DL") },
