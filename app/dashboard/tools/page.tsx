@@ -1,6 +1,13 @@
 import Link from "next/link";
 
 const TOOLS = [
+  { href: "/dashboard/tools/unit", title: "Unit Converter", description: "Konversi panjang, berat, suhu, kecepatan, data.", icon: "m", limit: "Tanpa batas" },
+  { href: "/dashboard/tools/base64", title: "Base64 & URL Encoder", description: "Encode/decode Base64 dan URL encoding.", icon: "64", limit: "Tanpa batas" },
+  { href: "/dashboard/tools/color", title: "Color Converter", description: "HEX ⇄ RGB ⇄ HSL dengan preview warna.", icon: "◉", limit: "Tanpa batas" },
+  { href: "/dashboard/tools/timestamp", title: "Timestamp Converter", description: "Unix timestamp ⇄ tanggal, format Indonesia.", icon: "⏱", limit: "Tanpa batas" },
+  { href: "/dashboard/tools/uuid", title: "UUID Generator", description: "UUID v4 kriptografis, batch 1-10.", icon: "ID", limit: "20x/jam untuk guest" },
+  { href: "/dashboard/tools/lorem", title: "Lorem Ipsum", description: "Teks placeholder paragraf/kalimat/kata.", icon: "¶", limit: "20x/jam untuk guest" },
+  { href: "/dashboard/tools/hash", title: "Hash Generator", description: "SHA-1/256/384/512 via Web Crypto.", icon: "#", limit: "20x/jam untuk guest" },
   { href: "/dashboard/tools/qr", title: "QR Generator", description: "Buat QR dari URL atau teks, download PNG.", icon: "QR", limit: "10x/jam untuk guest" },
   { href: "/dashboard/tools/password", title: "Password Generator", description: "Password acak kriptografis, tidak disimpan.", icon: "••", limit: "20x/jam untuk guest" },
   { href: "/dashboard/tools/json", title: "JSON Formatter", description: "Format, validasi, dan minify JSON.", icon: "{}", limit: "Tanpa batas" },
