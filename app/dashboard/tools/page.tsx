@@ -1,11 +1,11 @@
 import Link from "next/link";
 
-const PUBLIC_TOOLS = [
-  { title: "QR Generator", description: "Buat QR dari URL atau teks.", status: "Segera hadir", icon: "QR" },
-  { title: "JSON Formatter", description: "Rapikan dan validasi JSON di browser.", status: "Segera hadir", icon: "{}" },
-  { title: "Text Toolkit", description: "Hitung kata, ubah case, dan bersihkan teks.", status: "Segera hadir", icon: "Aa" },
-  { title: "Password Generator", description: "Buat password acak tanpa menyimpan hasilnya.", status: "Segera hadir", icon: "••" },
-  { title: "Image Compressor", description: "Kompres gambar langsung di browser.", status: "Segera hadir", icon: "IMG" },
+const TOOLS = [
+  { href: "/dashboard/tools/qr", title: "QR Generator", description: "Buat QR dari URL atau teks, download PNG.", icon: "QR", limit: "10x/jam untuk guest" },
+  { href: "/dashboard/tools/password", title: "Password Generator", description: "Password acak kriptografis, tidak disimpan.", icon: "••", limit: "20x/jam untuk guest" },
+  { href: "/dashboard/tools/json", title: "JSON Formatter", description: "Format, validasi, dan minify JSON.", icon: "{}", limit: "Tanpa batas" },
+  { href: "/dashboard/tools/text", title: "Text Toolkit", description: "Hitung kata/karakter, ubah case, bersihkan teks.", icon: "Aa", limit: "Tanpa batas" },
+  { href: "/dashboard/tools/image", title: "Image Compressor", description: "Kompres gambar ke JPEG di browser (maks 5 MB untuk guest).", icon: "IMG", limit: "Maks 5 MB untuk guest" },
 ];
 
 export default function ToolsPage() {
@@ -15,7 +15,7 @@ export default function ToolsPage() {
         <div>
           <p className="label-dim">Guest workspace</p>
           <h1>Tools gratis, tanpa login.</h1>
-          <p>Gunakan productivity tools tanpa membuat akun. Akun hanya diperlukan untuk fitur yang menyimpan data atau memakai layanan server.</p>
+          <p>Semua tools di bawah berjalan di browser kamu — data tidak dikirim ke server. Guest punya batas pemakaian; login untuk akses penuh.</p>
         </div>
         <div className="hero-actions">
           <span className="badge">No account required</span>
@@ -29,13 +29,13 @@ export default function ToolsPage() {
           <span className="label-dim">Guest access</span>
         </div>
         <div className="feature-grid">
-          {PUBLIC_TOOLS.map((tool) => (
-            <article key={tool.title} className="panel feature-card" aria-label={`${tool.title}, ${tool.status}`}>
+          {TOOLS.map((tool) => (
+            <Link key={tool.href} href={tool.href} className="panel feature-card" aria-label={tool.title} style={{ textDecoration: "none", color: "inherit" }}>
               <div className="feature-icon">{tool.icon}</div>
               <h3>{tool.title}</h3>
               <p>{tool.description}</p>
-              <span className="badge" style={{ marginTop: 16 }}>{tool.status}</span>
-            </article>
+              <span className="badge" style={{ marginTop: 16 }}>{tool.limit}</span>
+            </Link>
           ))}
         </div>
       </section>
