@@ -15,7 +15,7 @@ export default function AdminClient() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [currentSplashUrl, setCurrentSplashUrl] = useState<string>("/splash-default.mp4");
   const [apiConfig, setApiConfig] = useState({ tiktokApiUrl: "", instagramApiUrl: "", youtubeApiUrl: "" });
-  const [guestConfig, setGuestConfig] = useState({ mode: true, limit: 10 });
+  const [guestConfig, setGuestConfig] = useState({ mode: true, limit: 10, downloadLimit: 5 });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ displayName: "", role: "MEMBER", features: [] as string[], password: "" });
   const [msg, setMsg] = useState("");
@@ -31,7 +31,7 @@ export default function AdminClient() {
     if (b.ok) setBots(await b.json());
     if (g.ok) {
       const gdata = await g.json();
-      setGuestConfig({ mode: Boolean(gdata.guestMode), limit: gdata.guestToolLimit ?? 10 });
+      setGuestConfig({ mode: Boolean(gdata.guestMode), limit: gdata.guestToolLimit ?? 10, downloadLimit: gdata.guestDownloadLimit ?? 5 });
     }
     if (s.ok) {
       const data = await s.json();
@@ -147,7 +147,7 @@ export default function AdminClient() {
     const res = await fetch("/api/admin/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ guestMode: guestConfig.mode, guestToolLimit: guestConfig.limit }),
+      body: JSON.stringify({ guestMode: guestConfig.mode, guestToolLimit: guestConfig.limit, guestDownloadLimit: guestConfig.downloadLimit }),
     });
     const data = await res.json();
     setMsg(res.ok ? "Pengaturan guest tersimpan." : data.error);
@@ -247,6 +247,18 @@ export default function AdminClient() {
               onChange={(e) => setGuestConfig({ ...guestConfig, limit: Number(e.target.value) })}
               style={{ width: 90 }}
             />
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <span className="label-dim">Kuota download guest per jam</span>
+            <input
+              type="number"
+              min={0}
+              max={1000}
+              value={guestConfig.downloadLimit}
+              onChange={(e) => setGuestConfig({ ...guestConfig, downloadLimit: Number(e.target.value) })}
+              style={{ width: 90 }}
+            />
+            <span className="label-dim">(0 = download guest mati)</span>
           </div>
           <button className="btn">Simpan pengaturan guest</button>
         </form>

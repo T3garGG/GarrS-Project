@@ -31,8 +31,11 @@ const FEATURE_BY_PATH: Record<string, string> = {
 export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
-  // Public productivity hub. Individual tools can apply their own guest limits.
-  if (path === "/dashboard/tools" || path.startsWith("/dashboard/tools/")) {
+  // Public areas: productivity hub + downloader pages (guest limits enforced at API level).
+  if (
+    path === "/dashboard/tools" || path.startsWith("/dashboard/tools/") ||
+    path === "/dashboard/downloader" || path.startsWith("/dashboard/downloader/")
+  ) {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     if (!token) {
       const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";

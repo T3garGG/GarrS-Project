@@ -14,16 +14,19 @@ export async function GET() {
   const session = await requireAdmin();
   if (!session) return NextResponse.json({ error: "Lu bukan admin." }, { status: 403 });
   const settings = await prisma.appSettings.findUnique({ where: { id: "singleton" } });
-  return NextResponse.json({ guestMode: settings?.guestMode ?? true, guestToolLimit: settings?.guestToolLimit ?? 10 });
+  return NextResponse.json({ guestMode: settings?.guestMode ?? true, guestToolLimit: settings?.guestToolLimit ?? 10, guestDownloadLimit: settings?.guestDownloadLimit ?? 5 });
 }
 
 export async function PATCH(req: Request) {
   const session = await requireAdmin();
   if (!session) return NextResponse.json({ error: "Lu bukan admin." }, { status: 403 });
 
-  const { guestMode, guestToolLimit } = await req.json();
+  const { guestMode, guestToolLimit, guestDownloadLimit } = await req.json();
   if (guestToolLimit !== undefined && (!Number.isInteger(guestToolLimit) || guestToolLimit < 1 || guestToolLimit > 1000)) {
     return NextResponse.json({ error: "Limit harus angka 1-1000." }, { status: 400 });
+  }
+  if (guestDownloadLimit !== undefined && (!Number.isInteger(guestDownloadLimit) || guestDownloadLimit < 0 || guestDownloadLimit > 1000)) {
+    return NextResponse.json({ error: "Limit download harus angka 0-1000." }, { status: 400 });
   }
 
   await prisma.appSettings.upsert({
@@ -31,6 +34,7 @@ export async function PATCH(req: Request) {
     update: {
       ...(guestMode !== undefined && { guestMode: Boolean(guestMode) }),
       ...(guestToolLimit !== undefined && { guestToolLimit }),
+      ...(guestDownloadLimit !== undefined && { guestDownloadLimit }),
     },
     create: { id: "singleton" },
   });

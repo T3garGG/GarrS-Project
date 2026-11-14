@@ -48,7 +48,7 @@ export default function Navbar({
       </div>
       <div className="nav-actions">
         <span className="badge"><span>{guest ? "Guest mode" : displayName || username}</span>{!guest && <><span>·</span><span>{role}</span></>}</span>
-        {!guest && <ThemeToggle />}
+        <ThemeToggle />
         {!guest && <button className="btn-outline" onClick={() => signOut({ callbackUrl: "/login" })}>Keluar</button>}
       </div>
     </nav>

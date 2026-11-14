@@ -64,6 +64,7 @@ model AppSettings {
   youtubeApiUrl  String? // third-party API endpoint for YouTube downloader
   guestMode      Boolean @default(true)  // allow non-login visitors into /dashboard/tools
   guestToolLimit Int     @default(10)    // per-hour quota multiplier for guest tools
+  guestDownloadLimit Int @default(5)     // per-hour download quota for guests (0 = downloads off for guests)
 }
 
 // stores connection status/webhook secret for external bots (bots run on your own VPS/Seraphyne, not on Vercel)
