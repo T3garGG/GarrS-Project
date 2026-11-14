@@ -1,15 +1,20 @@
 "use client";
-import { useRouter } from "next/navigation";
 
-export default function BackButton({ label = "Kembali" }: { label?: string }) {
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+
+export default function BackButton({ fallback = "/dashboard/tools" }: { fallback?: string }) {
+  const pathname = usePathname();
   const router = useRouter();
+
+  if (pathname === fallback.replace(/\?.*$/, "")) return null;
+
   return (
-    <button
-      className="btn-outline mono"
-      onClick={() => router.back()}
-      style={{ marginBottom: 16, display: "inline-flex", alignItems: "center", gap: 6 }}
-    >
-      &larr; {label}
+    <button className="btn-outline" style={{ alignSelf: "flex-start" }} onClick={() => {
+      if (window.history.length > 1) router.back();
+      else router.push(fallback);
+    }}>
+      ← Kembali
     </button>
   );
 }

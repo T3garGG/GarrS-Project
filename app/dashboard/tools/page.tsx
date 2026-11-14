@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { getGuestConfig } from "@/lib/guest-config";
 
 const TOOLS = [
   { href: "/dashboard/tools/unit", title: "Unit Converter", description: "Konversi panjang, berat, suhu, kecepatan, data.", icon: "m", limit: "Tanpa batas" },
@@ -15,7 +19,13 @@ const TOOLS = [
   { href: "/dashboard/tools/image", title: "Image Compressor", description: "Kompres gambar ke JPEG di browser (maks 5 MB untuk guest).", icon: "IMG", limit: "Maks 5 MB untuk guest" },
 ];
 
-export default function ToolsPage() {
+export default async function ToolsPage() {
+  const [session, config] = await Promise.all([
+    getServerSession(authOptions),
+    getGuestConfig(),
+  ]);
+  if (!session && !config.guestMode) redirect("/login?denied=guest-off");
+
   return (
     <main className="page-stack">
       <section className="panel hero">

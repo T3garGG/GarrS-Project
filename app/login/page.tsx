@@ -1,10 +1,12 @@
 "use client";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const guestOff = searchParams.get("denied") === "guest-off";
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -40,10 +42,20 @@ export default function LoginPage() {
             <label htmlFor="password">Password</label>
             <input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
-          {error && <p style={{ color: "var(--danger)", fontSize: 13, margin: 0 }} role="alert">{error}</p>}
+          {guestOff && <p style={{ color: "var(--warning, #f5a524)", fontSize: 13, margin: 0 }}>Guest mode sedang dinonaktifkan admin. Silakan login.</p>}
+        {error && <p style={{ color: "var(--danger)", fontSize: 13, margin: 0 }} role="alert">{error}</p>}
           <button className="btn" type="submit" disabled={loading}>{loading ? "Memeriksa..." : "Masuk ke dashboard"}</button>
+          <button className="btn-outline" type="button" onClick={() => router.push("/dashboard/tools")}>Coba tanpa login (guest)</button>
         </div>
       </form>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

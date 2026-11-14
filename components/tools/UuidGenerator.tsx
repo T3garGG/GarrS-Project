@@ -4,8 +4,10 @@ import { useState } from "react";
 import { useGuestQuota } from "@/lib/use-guest-quota";
 import { GuestLimitBanner } from "@/components/GuestLimitBanner";
 
-export default function UuidGenerator({ isGuest }: { isGuest: boolean }) {
-  const { remaining, limited, resetIn, consume } = useGuestQuota("uuid", isGuest, 20);
+const DEFAULT_LIMIT = 20;
+
+export default function UuidGenerator({ isGuest, guestLimit }: { isGuest: boolean; guestLimit?: number }) {
+  const { remaining, limited, resetIn, consume } = useGuestQuota("uuid", isGuest, guestLimit ?? DEFAULT_LIMIT);
   const [count, setCount] = useState(1);
   const [uuids, setUuids] = useState<string[]>([]);
   const [error, setError] = useState("");
@@ -29,7 +31,7 @@ export default function UuidGenerator({ isGuest }: { isGuest: boolean }) {
         </div>
       </section>
 
-      <GuestLimitBanner limited={limited} remaining={remaining} max={20} resetIn={resetIn} />
+      <GuestLimitBanner limited={limited} remaining={remaining} max={guestLimit ?? DEFAULT_LIMIT} resetIn={resetIn} />
 
       <section className="panel" style={{ padding: 22 }}>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>

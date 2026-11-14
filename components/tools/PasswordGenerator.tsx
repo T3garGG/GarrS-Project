@@ -11,8 +11,10 @@ const CHARSETS = {
   symbols: "!@#$%^&*()-_=+[]{};:,.<>?",
 };
 
-export default function PasswordGenerator({ isGuest }: { isGuest: boolean }) {
-  const { remaining, limited, resetIn, consume } = useGuestQuota("password", isGuest, 20);
+const DEFAULT_LIMIT = 20;
+
+export default function PasswordGenerator({ isGuest, guestLimit }: { isGuest: boolean; guestLimit?: number }) {
+  const { remaining, limited, resetIn, consume } = useGuestQuota("password", isGuest, guestLimit ?? DEFAULT_LIMIT);
   const [length, setLength] = useState(16);
   const [useUpper, setUseUpper] = useState(true);
   const [useDigits, setUseDigits] = useState(true);
@@ -48,7 +50,7 @@ export default function PasswordGenerator({ isGuest }: { isGuest: boolean }) {
         </div>
       </section>
 
-      <GuestLimitBanner limited={limited} remaining={remaining} max={20} resetIn={resetIn} />
+      <GuestLimitBanner limited={limited} remaining={remaining} max={guestLimit ?? DEFAULT_LIMIT} resetIn={resetIn} />
 
       <section className="panel" style={{ padding: 22 }}>
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>

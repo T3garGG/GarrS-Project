@@ -24,8 +24,10 @@ function paragraph() {
   return Array.from({ length: len }, sentence).join(" ");
 }
 
-export default function LoremIpsum({ isGuest }: { isGuest: boolean }) {
-  const { remaining, limited, resetIn, consume } = useGuestQuota("lorem", isGuest, 20);
+const DEFAULT_LIMIT = 20;
+
+export default function LoremIpsum({ isGuest, guestLimit }: { isGuest: boolean; guestLimit?: number }) {
+  const { remaining, limited, resetIn, consume } = useGuestQuota("lorem", isGuest, guestLimit ?? DEFAULT_LIMIT);
   const [count, setCount] = useState(3);
   const [unit, setUnit] = useState<"paragraphs" | "sentences" | "words">("paragraphs");
   const [output, setOutput] = useState("");
@@ -53,7 +55,7 @@ export default function LoremIpsum({ isGuest }: { isGuest: boolean }) {
         </div>
       </section>
 
-      <GuestLimitBanner limited={limited} remaining={remaining} max={20} resetIn={resetIn} />
+      <GuestLimitBanner limited={limited} remaining={remaining} max={guestLimit ?? DEFAULT_LIMIT} resetIn={resetIn} />
 
       <section className="panel" style={{ padding: 22 }}>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>

@@ -62,6 +62,8 @@ model AppSettings {
   tiktokApiUrl   String? // third-party API endpoint for TikTok downloader
   instagramApiUrl String? // third-party API endpoint for Instagram downloader
   youtubeApiUrl  String? // third-party API endpoint for YouTube downloader
+  guestMode      Boolean @default(true)  // allow non-login visitors into /dashboard/tools
+  guestToolLimit Int     @default(10)    // per-hour quota multiplier for guest tools
 }
 
 // stores connection status/webhook secret for external bots (bots run on your own VPS/Seraphyne, not on Vercel)

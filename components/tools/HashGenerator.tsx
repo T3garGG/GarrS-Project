@@ -10,8 +10,10 @@ async function toHex(buffer: ArrayBuffer) {
   return Array.from(new Uint8Array(buffer), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-export default function HashGenerator({ isGuest }: { isGuest: boolean }) {
-  const { remaining, limited, resetIn, consume } = useGuestQuota("hash", isGuest, 20);
+const DEFAULT_LIMIT = 20;
+
+export default function HashGenerator({ isGuest, guestLimit }: { isGuest: boolean; guestLimit?: number }) {
+  const { remaining, limited, resetIn, consume } = useGuestQuota("hash", isGuest, guestLimit ?? DEFAULT_LIMIT);
   const [input, setInput] = useState("");
   const [results, setResults] = useState<{ algo: string; hex: string }[]>([]);
   const [error, setError] = useState("");
@@ -39,7 +41,7 @@ export default function HashGenerator({ isGuest }: { isGuest: boolean }) {
         </div>
       </section>
 
-      <GuestLimitBanner limited={limited} remaining={remaining} max={20} resetIn={resetIn} />
+      <GuestLimitBanner limited={limited} remaining={remaining} max={guestLimit ?? DEFAULT_LIMIT} resetIn={resetIn} />
 
       <section className="panel" style={{ padding: 22 }}>
         <label className="label-dim" htmlFor="hash-in">Teks</label>

@@ -5,8 +5,10 @@ import QRCode from "qrcode";
 import { useGuestQuota } from "@/lib/use-guest-quota";
 import { GuestLimitBanner } from "@/components/GuestLimitBanner";
 
-export default function QrGenerator({ isGuest }: { isGuest: boolean }) {
-  const { remaining, limited, resetIn, consume } = useGuestQuota("qr", isGuest, 10);
+const DEFAULT_LIMIT = 10;
+
+export default function QrGenerator({ isGuest, guestLimit }: { isGuest: boolean; guestLimit?: number }) {
+  const { remaining, limited, resetIn, consume } = useGuestQuota("qr", isGuest, guestLimit ?? DEFAULT_LIMIT);
   const [text, setText] = useState("");
   const [size, setSize] = useState(256);
   const [dataUrl, setDataUrl] = useState("");
@@ -34,7 +36,7 @@ export default function QrGenerator({ isGuest }: { isGuest: boolean }) {
         </div>
       </section>
 
-      <GuestLimitBanner limited={limited} remaining={remaining} max={10} resetIn={resetIn} />
+      <GuestLimitBanner limited={limited} remaining={remaining} max={guestLimit ?? DEFAULT_LIMIT} resetIn={resetIn} />
 
       <section className="panel" style={{ padding: 22 }}>
         <label className="label-dim" htmlFor="qr-text">Teks / URL</label>

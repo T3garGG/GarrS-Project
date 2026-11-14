@@ -15,18 +15,24 @@ export default function AdminClient() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [currentSplashUrl, setCurrentSplashUrl] = useState<string>("/splash-default.mp4");
   const [apiConfig, setApiConfig] = useState({ tiktokApiUrl: "", instagramApiUrl: "", youtubeApiUrl: "" });
+  const [guestConfig, setGuestConfig] = useState({ mode: true, limit: 10 });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ displayName: "", role: "MEMBER", features: [] as string[], password: "" });
   const [msg, setMsg] = useState("");
 
   async function loadAll() {
-    const [u, b, s] = await Promise.all([
+    const [u, b, s, g] = await Promise.all([
       fetch("/api/admin/users"),
       fetch("/api/admin/bots"),
       fetch("/api/admin/splash"),
+      fetch("/api/admin/settings"),
     ]);
     if (u.ok) setUsers(await u.json());
     if (b.ok) setBots(await b.json());
+    if (g.ok) {
+      const gdata = await g.json();
+      setGuestConfig({ mode: Boolean(gdata.guestMode), limit: gdata.guestToolLimit ?? 10 });
+    }
     if (s.ok) {
       const data = await s.json();
       setCurrentSplashUrl(data.splashVideoUrl || "/splash-default.mp4");
@@ -135,6 +141,18 @@ export default function AdminClient() {
     setMsg(res.ok ? "API config saver." : data.error);
   }
 
+  async function saveGuestConfig(e: React.FormEvent) {
+    e.preventDefault();
+    setMsg("");
+    const res = await fetch("/api/admin/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ guestMode: guestConfig.mode, guestToolLimit: guestConfig.limit }),
+    });
+    const data = await res.json();
+    setMsg(res.ok ? "Pengaturan guest tersimpan." : data.error);
+  }
+
   async function uploadSplashFile(e: React.FormEvent) {
     e.preventDefault();
     if (!splashFile) return;
@@ -204,6 +222,35 @@ export default function AdminClient() {
       </div>
 
       {msg && <p className="panel" style={{ padding: 12 }}>{msg}</p>}
+
+      <section className="panel" style={{ padding: 24 }}>
+        <h2 style={{ marginTop: 0, fontSize: 16 }}>Pengaturan guest</h2>
+        <p className="label-dim" style={{ marginTop: 0 }}>
+          Kontrol akses pengunjung tanpa login ke halaman /dashboard/tools.
+        </p>
+        <form onSubmit={saveGuestConfig} style={{ display: "grid", gap: 12, maxWidth: 420 }}>
+          <label className="badge" style={{ cursor: "pointer", width: "fit-content" }}>
+            <input
+              type="checkbox"
+              checked={guestConfig.mode}
+              onChange={(e) => setGuestConfig({ ...guestConfig, mode: e.target.checked })}
+            />
+            Guest mode aktif (boleh pakai tools tanpa login)
+          </label>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <span className="label-dim">Kuota tools per jam</span>
+            <input
+              type="number"
+              min={1}
+              max={1000}
+              value={guestConfig.limit}
+              onChange={(e) => setGuestConfig({ ...guestConfig, limit: Number(e.target.value) })}
+              style={{ width: 90 }}
+            />
+          </div>
+          <button className="btn">Simpan pengaturan guest</button>
+        </form>
+      </section>
 
       <section className="panel" style={{ padding: 24 }}>
         <h2 style={{ marginTop: 0, fontSize: 16 }}>Buat akun baru</h2>
